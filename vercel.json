@@ -8,6 +8,10 @@
   ],
   "routes": [
     {
+      "src": "/api/health",
+      "dest": "/server.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/server.js"
     },
@@ -22,7 +26,9 @@
   ],
   "functions": {
     "server.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 1024
     }
-  }
+  },
+  "regions": ["hkg1"]
 } 

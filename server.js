@@ -5,20 +5,17 @@ const CryptoJS = require('crypto-js');
 const cors = require('cors');
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
+
+// 预加载环境变量
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
-
-// 内存存储（生产环境应使用数据库）
-let users = [];
-let passwords = [];
-let categories = [
+// 预初始化内存存储
+const users = [];
+const passwords = [];
+const categories = [
   { id: 'social', name: '社交媒体', color: '#FF6B6B' },
   { id: 'email', name: '邮箱', color: '#4ECDC4' },
   { id: 'banking', name: '银行金融', color: '#45B7D1' },
@@ -27,10 +24,29 @@ let categories = [
   { id: 'other', name: '其他', color: '#DDA0DD' }
 ];
 
-// JWT密钥
+// 预设置JWT密钥
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// 验证JWT中间件
+// 预初始化中间件
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// 预定义工具函数
+const encryptPassword = (password, masterPassword) => {
+  return CryptoJS.AES.encrypt(password, masterPassword).toString();
+};
+
+const decryptPassword = (encryptedPassword, masterPassword) => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(encryptedPassword, masterPassword);
+    return bytes.toString(CryptoJS.enc.Utf8);
+  } catch (error) {
+    return null;
+  }
+};
+
+// 预定义JWT验证中间件
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -48,20 +64,19 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// 加密密码
-const encryptPassword = (password, masterPassword) => {
-  return CryptoJS.AES.encrypt(password, masterPassword).toString();
-};
+// 健康检查 - 快速响应
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
-// 解密密码
-const decryptPassword = (encryptedPassword, masterPassword) => {
-  try {
-    const bytes = CryptoJS.AES.decrypt(encryptedPassword, masterPassword);
-    return bytes.toString(CryptoJS.enc.Utf8);
-  } catch (error) {
-    return null;
-  }
-};
+// 根路径 - 快速响应
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+});
 
 // 用户注册
 app.post('/api/register', async (req, res) => {
@@ -72,14 +87,11 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: '用户名和主密码不能为空' });
     }
 
-    // 检查用户是否已存在
     if (users.find(u => u.username === username)) {
       return res.status(400).json({ error: '用户名已存在' });
     }
 
-    // 加密主密码
     const hashedPassword = await bcrypt.hash(masterPassword, 10);
-
     const newUser = {
       id: uuidv4(),
       username,
@@ -88,11 +100,7 @@ app.post('/api/register', async (req, res) => {
     };
 
     users.push(newUser);
-
-    res.status(201).json({ 
-      message: '注册成功',
-      userId: newUser.id 
-    });
+    res.status(201).json({ message: '注册成功', userId: newUser.id });
   } catch (error) {
     res.status(500).json({ error: '服务器错误' });
   }
@@ -151,9 +159,7 @@ app.post('/api/passwords', authenticateToken, (req, res) => {
       return res.status(400).json({ error: '标题、用户名、密码和主密码不能为空' });
     }
 
-    // 加密密码
     const encryptedPassword = encryptPassword(password, masterPassword);
-
     const newPassword = {
       id: uuidv4(),
       userId: req.user.userId,
@@ -168,13 +174,9 @@ app.post('/api/passwords', authenticateToken, (req, res) => {
     };
 
     passwords.push(newPassword);
-
     res.status(201).json({ 
       message: '密码添加成功',
-      password: {
-        ...newPassword,
-        password: '***' // 不返回实际密码
-      }
+      password: { ...newPassword, password: '***' }
     });
   } catch (error) {
     res.status(500).json({ error: '服务器错误' });
@@ -207,10 +209,7 @@ app.put('/api/passwords/:id', authenticateToken, (req, res) => {
 
     res.json({ 
       message: '密码更新成功',
-      password: {
-        ...passwords[passwordIndex],
-        password: '***'
-      }
+      password: { ...passwords[passwordIndex], password: '***' }
     });
   } catch (error) {
     res.status(500).json({ error: '服务器错误' });
@@ -301,19 +300,14 @@ app.put('/api/change-master-password', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: '用户不存在' });
     }
 
-    // 验证当前密码
     const isValidPassword = await bcrypt.compare(currentPassword, user.masterPassword);
     if (!isValidPassword) {
       return res.status(400).json({ error: '当前密码错误' });
     }
 
-    // 加密新密码
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-
-    // 更新用户密码
     user.masterPassword = hashedNewPassword;
 
-    // 重新加密所有密码条目
     const userPasswords = passwords.filter(p => p.userId === req.user.userId);
     userPasswords.forEach(p => {
       const decryptedPassword = decryptPassword(p.password, currentPassword);
@@ -339,16 +333,6 @@ app.get('/api/qr-code', authenticateToken, async (req, res) => {
   }
 });
 
-// 健康检查
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// 根路径重定向到首页
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
-});
-
 // 启动服务器
 const server = app.listen(PORT, () => {
   console.log(`密码管理器服务器运行在端口 ${PORT}`);
@@ -356,6 +340,6 @@ const server = app.listen(PORT, () => {
 });
 
 // 设置超时时间
-server.timeout = 30000; // 30秒
+server.timeout = 30000;
 
 module.exports = app; 
