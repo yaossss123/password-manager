@@ -344,7 +344,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+// 根路径重定向到首页
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+});
+
+// 启动服务器
+const server = app.listen(PORT, () => {
   console.log(`密码管理器服务器运行在端口 ${PORT}`);
   console.log(`访问地址: http://localhost:${PORT}`);
-}); 
+});
+
+// 设置超时时间
+server.timeout = 30000; // 30秒
+
+module.exports = app; 
