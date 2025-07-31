@@ -32,7 +32,7 @@
                 </form>
                 
                 <!-- 注册表单 -->
-                <form id="register-form" class="auth-form" style="display: none;">
+                <form id="register-form" class="auth-form hidden">
                     <div class="input-group">
                         <input type="password" id="register-password" placeholder="设置主密码" required>
                         <button type="button" class="toggle-password" title="切换密码显示">
@@ -51,7 +51,7 @@
         </div>
 
         <!-- 主应用界面 -->
-        <div id="app-section" class="app-section" style="display: none;">
+        <div id="app-section" class="app-section hidden">
             <!-- 头部 -->
             <header class="app-header">
                 <div class="header-left">
@@ -96,7 +96,7 @@
                     </div>
                     
                     <!-- 统计信息 -->
-                    <div id="stats" class="stats" style="display: none;">
+                    <div id="stats" class="stats hidden">
                         <div class="stat-item">
                             <h4 id="total-passwords">0</h4>
                             <p>总密码数</p>
@@ -116,14 +116,14 @@
                     </div>
                     
                     <!-- 空状态 -->
-                    <div id="empty-state" class="empty-state" style="display: none;">
+                    <div id="empty-state" class="empty-state hidden">
                         <i class="fas fa-lock"></i>
                         <h3>还没有密码</h3>
                         <p>点击"添加密码"按钮开始管理你的密码</p>
                     </div>
                 </main>
             </div>
-        </div>
+        </>
     </div>
 
     <!-- 模态框 -->
