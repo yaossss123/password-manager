@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密码管理器 - XAMPP版本</title>
+    <link rel="stylesheet" href="xampp-styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 登录界面 -->
+        <div id="login-section" class="auth-section">
+            <div class="auth-container">
+                <h1><i class="fas fa-lock"></i> 密码管理器</h1>
+                <p class="subtitle">XAMPP版本 - 本地部署</p>
+                
+                <div class="auth-tabs">
+                    <button class="tab-btn active" onclick="showLogin()">登录</button>
+                    <button class="tab-btn" onclick="showRegister()">注册</button>
+                </div>
+                
+                <!-- 登录表单 -->
+                <form id="login-form" class="auth-form">
+                    <div class="input-group">
+                        <input type="password" id="login-password" placeholder="输入主密码" required>
+                        <button type="button" class="toggle-password" title="切换密码显示">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                </form>
+                
+                <!-- 注册表单 -->
+                <form id="register-form" class="auth-form" style="display: none;">
+                    <div class="input-group">
+                        <input type="password" id="register-password" placeholder="设置主密码" required>
+                        <button type="button" class="toggle-password" title="切换密码显示">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="confirm-password" placeholder="确认主密码" required>
+                        <button type="button" class="toggle-password" title="切换密码显示">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary">注册</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 主应用界面 -->
+        <div id="app-section" class="app-section" style="display: none;">
+            <!-- 头部 -->
+            <header class="app-header">
+                <div class="header-left">
+                    <h1><i class="fas fa-lock"></i> 密码管理器</h1>
+                    <span class="version">XAMPP版本</span>
+                </div>
+                <div class="header-right">
+                    <button id="qr-code-btn" class="btn btn-secondary" title="分享应用">
+                        <i class="fas fa-qrcode"></i> 分享
+                    </button>
+                    <button id="settings-btn" class="btn btn-secondary" title="设置">
+                        <i class="fas fa-cog"></i> 设置
+                    </button>
+                    <button id="logout-btn" class="btn btn-danger" title="退出登录">
+                        <i class="fas fa-sign-out-alt"></i> 退出
+                    </button>
+                </div>
+            </header>
+
+            <!-- 主要内容 -->
+            <div class="app-content">
+                <!-- 侧边栏 -->
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <h3>分类</h3>
+                        <button id="add-category-btn" class="btn btn-sm btn-primary" title="添加分类">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div id="categories-list" class="categories-list">
+                        <!-- 分类列表将通过JavaScript动态生成 -->
+                    </div>
+                </aside>
+
+                <!-- 密码区域 -->
+                <main class="password-section">
+                    <div class="password-header">
+                        <h2 id="current-category">所有密码</h2>
+                        <button id="add-password-btn" class="btn btn-primary" title="添加密码">
+                            <i class="fas fa-plus"></i> 添加密码
+                        </button>
+                    </div>
+                    
+                    <!-- 统计信息 -->
+                    <div id="stats" class="stats" style="display: none;">
+                        <div class="stat-item">
+                            <h4 id="total-passwords">0</h4>
+                            <p>总密码数</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4 id="total-categories">0</h4>
+                            <p>分类数量</p>
+                        </div>
+                        <div class="stat-item">
+                            <h4 id="recent-added">0</h4>
+                            <p>最近添加</p>
+                        </div>
+                    </div>
+                    
+                    <div id="passwords-list" class="passwords-list">
+                        <!-- 密码列表将通过JavaScript动态生成 -->
+                    </div>
+                    
+                    <!-- 空状态 -->
+                    <div id="empty-state" class="empty-state" style="display: none;">
+                        <i class="fas fa-lock"></i>
+                        <h3>还没有密码</h3>
+                        <p>点击"添加密码"按钮开始管理你的密码</p>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body">
+                <!-- 模态框内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知 -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // XAMPP版本配置
+        const API_BASE = 'http://localhost:3000/api';
+        const IS_XAMPP = true;
+        
+        // 模拟数据存储（XAMPP版本使用localStorage）
+        let users = JSON.parse(localStorage.getItem('password-manager-users') || '[]');
+        let passwords = JSON.parse(localStorage.getItem('password-manager-passwords') || '[]');
+        let categories = JSON.parse(localStorage.getItem('password-manager-categories') || '[]');
+        
+        // 初始化默认分类
+        if (categories.length === 0) {
+            categories = [
+                { id: '1', name: '网站登录', icon: 'fas fa-globe' },
+                { id: '2', name: '邮箱', icon: 'fas fa-envelope' },
+                { id: '3', name: '银行', icon: 'fas fa-university' },
+                { id: '4', name: '社交媒体', icon: 'fas fa-share-alt' },
+                { id: '5', name: '其他', icon: 'fas fa-ellipsis-h' }
+            ];
+            localStorage.setItem('password-manager-categories', JSON.stringify(categories));
+        }
+        
+        // 工具函数
+        function saveData() {
+            localStorage.setItem('password-manager-users', JSON.stringify(users));
+            localStorage.setItem('password-manager-passwords', JSON.stringify(passwords));
+            localStorage.setItem('password-manager-categories', JSON.stringify(categories));
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 认证相关
+        function showLogin() {
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function showRegister() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        // 注册功能
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                showNotification('两次输入的密码不一致', 'error');
+                return;
+            }
+            
+            if (users.length > 0) {
+                showNotification('已经注册过了，请直接登录', 'error');
+                return;
+            }
+            
+            // 创建用户
+            users.push({
+                id: '1',
+                masterPassword: btoa(password) // 简单编码，实际应该使用更安全的方法
+            });
+            saveData();
+            showNotification('注册成功！请登录', 'success');
+            showLogin();
+        });
+        
+        // 登录功能
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const password = document.getElementById('login-password').value;
+            
+            if (users.length === 0) {
+                showNotification('请先注册', 'error');
+                return;
+            }
+            
+            const user = users[0];
+            if (btoa(password) === user.masterPassword) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('app-section').style.display = 'block';
+                loadCategories();
+                loadPasswords();
+                showNotification('登录成功！', 'success');
+            } else {
+                showNotification('密码错误', 'error');
+            }
+        });
+        
+        // 加载分类
+        function loadCategories() {
+            const categoriesList = document.getElementById('categories-list');
+            categoriesList.innerHTML = '';
+            
+            categories.forEach(category => {
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'category-item';
+                categoryElement.innerHTML = `
+                    <i class="${category.icon}"></i>
+                    <span>${category.name}</span>
+                    <span class="count">${passwords.filter(p => p.categoryId === category.id).length}</span>
+                `;
+                categoryElement.onclick = () => selectCategory(category);
+                categoriesList.appendChild(categoryElement);
+            });
+        }
+        
+        // 选择分类
+        function selectCategory(category) {
+            document.getElementById('current-category').textContent = category.name;
+            loadPasswords(category.id);
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            const totalPasswords = passwords.length;
+            const totalCategories = categories.length;
+            const recentAdded = passwords.filter(p => {
+                const passwordDate = new Date(parseInt(p.id));
+                const now = new Date();
+                const diffDays = (now - passwordDate) / (1000 * 60 * 60 * 24);
+                return diffDays <= 7;
+            }).length;
+            
+            document.getElementById('total-passwords').textContent = totalPasswords;
+            document.getElementById('total-categories').textContent = totalCategories;
+            document.getElementById('recent-added').textContent = recentAdded;
+            
+            // 显示统计信息
+            document.getElementById('stats').style.display = 'flex';
+        }
+        
+        // 加载密码
+        function loadPasswords(categoryId = null) {
+            const passwordsList = document.getElementById('passwords-list');
+            const emptyState = document.getElementById('empty-state');
+            passwordsList.innerHTML = '';
+            
+            const filteredPasswords = categoryId 
+                ? passwords.filter(p => p.categoryId === categoryId)
+                : passwords;
+            
+            if (filteredPasswords.length === 0) {
+                passwordsList.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                passwordsList.style.display = 'grid';
+                emptyState.style.display = 'none';
+                
+                filteredPasswords.forEach(password => {
+                    const passwordElement = document.createElement('div');
+                    passwordElement.className = 'password-item';
+                    passwordElement.innerHTML = `
+                        <div class="password-info">
+                            <h3>${password.title}</h3>
+                            <p>${password.username}</p>
+                        </div>
+                        <div class="password-actions">
+                            <button onclick="viewPassword('${password.id}')" title="查看密码">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="editPassword('${password.id}')" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deletePassword('${password.id}')" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    passwordsList.appendChild(passwordElement);
+                });
+            }
+            
+            updateStats();
+        }
+        
+        // 密码操作
+        function viewPassword(id) {
+            const password = passwords.find(p => p.id === id);
+            if (password) {
+                const masterPassword = prompt('请输入主密码以查看密码：');
+                if (masterPassword) {
+                    try {
+                        const decryptedPassword = atob(password.password); // 简单解码
+                        alert(`密码: ${decryptedPassword}`);
+                    } catch (error) {
+                        showNotification('密码解密失败', 'error');
+                    }
+                }
+            }
+        }
+        
+        function editPassword(id) {
+            // 实现编辑功能
+            showNotification('编辑功能开发中...', 'info');
+        }
+        
+        function deletePassword(id) {
+            if (confirm('确定要删除这个密码吗？')) {
+                passwords = passwords.filter(p => p.id !== id);
+                saveData();
+                loadPasswords();
+                showNotification('密码已删除', 'success');
+            }
+        }
+        
+        // 退出登录
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            document.getElementById('app-section').style.display = 'none';
+            document.getElementById('login-section').style.display = 'block';
+            showNotification('已退出登录', 'info');
+        });
+        
+        // 密码显示切换
+        document.querySelectorAll('.toggle-password').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.previousElementSibling;
+                const icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.className = 'fas fa-eye-slash';
+                } else {
+                    input.type = 'password';
+                    icon.className = 'fas fa-eye';
+                }
+            });
+        });
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('密码管理器 XAMPP版本已加载');
+            
+            // 添加加载动画
+            document.body.classList.add('loaded');
+            
+            // 添加一些示例数据（如果为空）
+            if (passwords.length === 0) {
+                // 添加示例密码
+                const samplePasswords = [
+                    {
+                        id: '1',
+                        title: 'GitHub',
+                        username: 'user@example.com',
+                        password: btoa('sample123'),
+                        categoryId: '1',
+                        notes: 'GitHub登录密码'
+                    },
+                    {
+                        id: '2',
+                        title: '邮箱',
+                        username: 'user@email.com',
+                        password: btoa('email456'),
+                        categoryId: '2',
+                        notes: '主要邮箱密码'
+                    }
+                ];
+                passwords.push(...samplePasswords);
+                saveData();
+            }
+        });
+        
+        // 添加密码功能
+        document.getElementById('add-password-btn').addEventListener('click', function() {
+            const title = prompt('请输入网站/应用名称：');
+            if (!title) return;
+            
+            const username = prompt('请输入用户名：');
+            if (!username) return;
+            
+            const password = prompt('请输入密码：');
+            if (!password) return;
+            
+            const newPassword = {
+                id: Date.now().toString(),
+                title: title,
+                username: username,
+                password: btoa(password),
+                categoryId: '1', // 默认分类
+                notes: ''
+            };
+            
+            passwords.push(newPassword);
+            saveData();
+            loadPasswords();
+            showNotification('密码添加成功！', 'success');
+        });
+        
+        // 添加分类功能
+        document.getElementById('add-category-btn').addEventListener('click', function() {
+            const name = prompt('请输入分类名称：');
+            if (!name) return;
+            
+            const newCategory = {
+                id: Date.now().toString(),
+                name: name,
+                icon: 'fas fa-folder'
+            };
+            
+            categories.push(newCategory);
+            saveData();
+            loadCategories();
+            showNotification('分类添加成功！', 'success');
+        });
+    </script>
+</body>
+</html> 

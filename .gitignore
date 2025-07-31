@@ -1,43 +1,95 @@
-# 依赖
+# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# 环境变量
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# 日志
-logs
-*.log
-
-# 运行时数据
+# Runtime data
 pids
 *.pid
 *.seed
 *.pid.lock
 
-# 覆盖率目录
+# Coverage directory used by tools like istanbul
 coverage/
 
-# 临时文件
-.tmp/
-.temp/
+# nyc test coverage
+.nyc_output
 
-# 系统文件
-.DS_Store
-Thumbs.db
+# Grunt intermediate storage
+.grunt
 
-# IDE文件
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# next.js build output
+.next
+
+# Nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# 测试文件
-test.js
-demo-data.js 
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp 
